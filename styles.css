@@ -185,12 +185,10 @@ body.light-mode #gpf-root {
 .gpf-mosaic {
   width: 100%; overflow: hidden;
   background: var(--gpf-cover-bg); position: relative;
-  /* Grow to fill remaining card height; aspect-ratio only applies when NOT stretching */
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 1 1 auto;
+  aspect-ratio: 1;
 }
-/* When cards are the same height, keep square mosaic as fallback */
-.gpf-mosaic-0, .gpf-mosaic-1 { aspect-ratio: unset; }
+.gpf-mosaic-0, .gpf-mosaic-1 { aspect-ratio: 1; }
 .gpf-mosaic-0 { display: flex; align-items: center; justify-content: center; }
 .gpf-mosaic-empty { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--gpf-text-muted); opacity: 0.25; }
 .gpf-mosaic-empty svg { width: 42px; height: 42px; }
@@ -224,21 +222,63 @@ body.light-mode #gpf-root {
 .gpf-album-no-cover { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 150px; color: var(--gpf-text-muted); opacity: 0.22; }
 .gpf-album-no-cover svg { width: 42px; height: 42px; }
 
-/* Date chip overlaid on the cover image */
-.gpf-date-overlay {
+/* Cover overlay row (shared icon + date chip) */
+.gpf-cover-overlay {
   position: absolute;
   bottom: 8px;
   right: 8px;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* Nested album info */
+/* Shared icon (people) */
+.gpf-shared-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 50%;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  flex-shrink: 0;
+  transition: background 0.15s ease, outline 0.15s ease;
+}
+.gpf-shared-icon svg {
+  width: 12px; height: 12px;
+  color: #fff;
+}
+.gpf-card:hover .gpf-shared-icon:not(.gpf-shared-inline) {
+  background: rgba(0, 0, 0, 0.85);
+  outline: 1.5px solid rgba(255, 255, 255, 0.8);
+}
+/* Inline variant for root album rows (no background pill) */
+.gpf-shared-inline {
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  width: auto; height: auto;
+}
+.gpf-shared-inline svg {
+  width: 15px; height: 15px;
+  color: var(--gpf-text-muted);
+}
+/* Root meta top row (shared + date on same line) */
+.gpf-root-meta-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Nested album info — fixed height so date chip on cover stays aligned */
 .gpf-nested-info {
   padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 /* The meta-row: count on left, chip on right, same line */
 .gpf-nested-meta-row {
@@ -262,6 +302,11 @@ body.light-mode #gpf-root {
   color: var(--gpf-text);
   line-height: 1.35;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 35px;
 }
 .gpf-nested-count {
   font-size: 11.5px;
@@ -271,15 +316,21 @@ body.light-mode #gpf-root {
 
 /* ─── Date chip — gray ───────────────────────────────────────────── */
 .gpf-date-chip {
-  display: inline-flex; align-items: center;
+  display: inline-flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
   font-size: 11px; font-weight: 500; letter-spacing: 0.02em;
-  padding: 3px 9px; border-radius: 6px; white-space: nowrap;
+  height: 20px; box-sizing: border-box;
+  padding: 0 8px; border-radius: 10px; white-space: nowrap;
   font-family: 'Google Sans', Roboto, sans-serif;
   flex-shrink: 0; width: fit-content;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: background 0.15s ease, outline 0.15s ease;
+}
+.gpf-card:hover .gpf-date-chip {
+  background: rgba(0, 0, 0, 0.85);
+  outline: 1.5px solid rgba(255, 255, 255, 0.8);
 }
 
 .gpf-item-count {

@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const CACHE_KEY = 'gpf_album_cache_v17';
+  const CACHE_KEY = 'gpf_album_cache_v18';
 
   // ─── Trusted Types policy ────────────────────────────────────────────────────
   let _ttPolicy;
@@ -89,6 +89,7 @@
       if (ex) {
         if (album.cover && !ex.cover) ex.cover = album.cover;
         if (album.itemCount && !ex.itemCount) ex.itemCount = album.itemCount;
+        if (album.shared) ex.shared = true;
         // Prefer /share/ URL over constructed /album/ URL
         if (album.href && album.href.includes('/share/') && !ex.href.includes('/share/')) ex.href = album.href;
       }
@@ -200,7 +201,8 @@
         if (bg?.includes('http')) { cover = bg.replace(/url\(["']?|["']?\)/g, ''); break; }
       }
     }
-    addAlbum({ id, title, cover, href, itemCount });
+    const shared = /\/share\//.test(href);
+    addAlbum({ id, title, cover, href, itemCount, shared });
   }
 
   function scrapeVisibleAlbums() {
@@ -481,12 +483,23 @@
     } else {
       coverDiv.innerHTML = safeHTML(`<div class="gpf-album-no-cover"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`);
     }
-    // Date chip overlaid on the cover image (bottom-right)
-    if (album.date) {
-      const chip = document.createElement('span');
-      chip.className = 'gpf-date-chip gpf-date-overlay';
-      chip.textContent = album.date;
-      coverDiv.appendChild(chip);
+    // Overlay chips (bottom-right): shared icon + date
+    if (album.shared || album.date) {
+      const overlay = document.createElement('div');
+      overlay.className = 'gpf-cover-overlay';
+      if (album.shared) {
+        const sharedIcon = document.createElement('span');
+        sharedIcon.className = 'gpf-shared-icon';
+        sharedIcon.innerHTML = safeHTML(`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`);
+        overlay.appendChild(sharedIcon);
+      }
+      if (album.date) {
+        const chip = document.createElement('span');
+        chip.className = 'gpf-date-chip';
+        chip.textContent = album.date;
+        overlay.appendChild(chip);
+      }
+      coverDiv.appendChild(overlay);
     }
     card.appendChild(coverDiv);
 
@@ -524,12 +537,21 @@
 
     const meta = document.createElement('div');
     meta.className = 'gpf-root-meta';
+    const metaTopRow = document.createElement('div');
+    metaTopRow.className = 'gpf-root-meta-top';
+    if (album.shared) {
+      const sharedIcon = document.createElement('span');
+      sharedIcon.className = 'gpf-shared-icon gpf-shared-inline';
+      sharedIcon.innerHTML = safeHTML(`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>`);
+      metaTopRow.appendChild(sharedIcon);
+    }
     if (album.date) {
       const chip = document.createElement('span');
       chip.className = 'gpf-date-chip';
       chip.textContent = album.date;
-      meta.appendChild(chip);
+      metaTopRow.appendChild(chip);
     }
+    if (metaTopRow.children.length) meta.appendChild(metaTopRow);
     const nameEl = document.createElement('div');
     nameEl.className = 'gpf-root-name';
     nameEl.textContent = album.displayName || album.title;
