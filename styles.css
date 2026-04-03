@@ -252,7 +252,6 @@ body.light-mode #gpf-root {
 }
 .gpf-card:hover .gpf-shared-icon:not(.gpf-shared-inline) {
   background: rgba(0, 0, 0, 0.85);
-  outline: 1.5px solid rgba(255, 255, 255, 0.8);
 }
 /* Inline variant for root album rows (no background pill) */
 .gpf-shared-inline {
@@ -330,7 +329,6 @@ body.light-mode #gpf-root {
 }
 .gpf-card:hover .gpf-date-chip {
   background: rgba(0, 0, 0, 0.85);
-  outline: 1.5px solid rgba(255, 255, 255, 0.8);
 }
 
 .gpf-item-count {

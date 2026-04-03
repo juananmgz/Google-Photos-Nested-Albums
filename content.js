@@ -6,6 +6,7 @@
   'use strict';
 
   const CACHE_KEY = 'gpf_album_cache_v18';
+  const PATH_KEY  = 'gpf_current_path';
 
   // ─── Trusted Types policy ────────────────────────────────────────────────────
   let _ttPolicy;
@@ -572,6 +573,7 @@
     if (replace) history.replaceState(state, '', url);
     else history.pushState(state, '', url);
     _gpfNavigating = false;
+    try { sessionStorage.setItem(PATH_KEY, JSON.stringify(path)); } catch (_) {}
     renderView();
   }
 
@@ -625,43 +627,11 @@
 
   // ─── Show folder view (swap grid) ────────────────────────────────────────────
 
-  // Collapse height on ancestors so the page fits the folder view content
-  // instead of keeping the tall Google Photos grid height.
   let _collapsedEls = [];
-
-  function collapseAncestorHeights(gridEl) {
-    _collapsedEls = [];
-    let el = gridEl.parentElement;
-    while (el && el !== document.documentElement) {
-      const s = getComputedStyle(el);
-      // Only override elements that have explicit or large min-height / height
-      const h = el.style.height || '';
-      const mh = el.style.minHeight || '';
-      const cH = parseFloat(s.height) || 0;
-      const cMH = parseFloat(s.minHeight) || 0;
-      if (h || mh || cMH > 100) {
-        _collapsedEls.push({ el, origH: h, origMH: mh });
-        el.style.height = 'auto';
-        el.style.minHeight = '0px';
-      }
-      el = el.parentElement;
-    }
-  }
-
-  function restoreAncestorHeights() {
-    for (const { el, origH, origMH } of _collapsedEls) {
-      el.style.height = origH;
-      el.style.minHeight = origMH;
-    }
-    _collapsedEls = [];
-  }
 
   function showFolderView(gridEl) {
     originalGrid = gridEl;
     gridEl.style.cssText = 'display:none!important';
-
-    // Collapse tall ancestor heights so page fits the folder content
-    collapseAncestorHeights(gridEl);
 
     gpfContainer = document.createElement('div');
     gpfContainer.className = 'gpf-wrapper';
@@ -675,15 +645,17 @@
     if (sc) sc.scrollTop = 0;
     window.scrollTo(0, 0);
 
-    // Restore folder path from history state (survives refresh), or start at root
-    const savedPath = history.state?.gpfPath;
+    // Restore folder path from history state or sessionStorage (survives refresh)
+    let savedPath = history.state?.gpfPath;
+    if (!Array.isArray(savedPath) || savedPath.length === 0) {
+      try { savedPath = JSON.parse(sessionStorage.getItem(PATH_KEY)); } catch (_) {}
+    }
     if (Array.isArray(savedPath) && savedPath.length > 0) {
       currentPath = savedPath;
-    } else {
-      _gpfNavigating = true;
-      history.replaceState({ gpfPath: [] }, '', location.href);
-      _gpfNavigating = false;
     }
+    _gpfNavigating = true;
+    history.replaceState({ gpfPath: currentPath.slice() }, '', location.href);
+    _gpfNavigating = false;
     renderView();
     isInjected = true;
   }
@@ -720,6 +692,7 @@
     isInjected = false;
     isCollecting = false;
     currentPath = [];
+    try { sessionStorage.removeItem(PATH_KEY); } catch (_) {}
 
     if (isAlbumsListPage()) setTimeout(findAndInject, 900);
   }
