@@ -1,0 +1,403 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Google Photos Folders – Extension Styles v6
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Dark mode (GP default) ────────────────────────────────────── */
+:root {
+  --gpf-text:         #e8eaed;
+  --gpf-text-muted:   #9aa0a6;
+  --gpf-text-sub:     #80868b;
+  --gpf-surface:      #2a2a2a;
+  --gpf-surface-hov:  #333;
+  --gpf-border:       rgba(255,255,255,0.08);
+  --gpf-cover-bg:     #2e2e2e;
+  --gpf-accent:       #8ab4f8;
+  --gpf-folder-clr:   #fdd663;
+  --gpf-shadow:       0 1px 4px rgba(0,0,0,0.5);
+  --gpf-shadow-hov:   0 6px 20px rgba(0,0,0,0.65);
+  --gpf-spin-track:   rgba(255,255,255,0.1);
+  --gpf-chip-bg:      rgba(255,255,255,0.11);
+  --gpf-chip-fg:      #bdc1c6;
+  --gpf-row-hov:      rgba(255,255,255,0.05);
+  --gpf-divider:      rgba(255,255,255,0.08);
+  --gpf-load-bg:      rgba(32,32,32,0.96);
+  --gpf-load-fg:      #9aa0a6;
+  --gpf-r:            12px;
+  --gpf-rs:           6px;
+  --gpf-gap:          16px;
+  --gpf-cw:           210px;
+  --gpf-t:            0.18s cubic-bezier(0.2,0,0,1);
+}
+
+/* ─── Light mode ─────────────────────────────────────────────────── */
+@media (prefers-color-scheme: light) { :root {
+  --gpf-text:         #202124;
+  --gpf-text-muted:   #5f6368;
+  --gpf-text-sub:     #80868b;
+  --gpf-surface:      #f1f3f4;
+  --gpf-surface-hov:  #e8eaed;
+  --gpf-border:       rgba(0,0,0,0.08);
+  --gpf-cover-bg:     #e0e0e0;
+  --gpf-accent:       #1a73e8;
+  --gpf-folder-clr:   #f9ab00;
+  --gpf-shadow:       0 1px 3px rgba(0,0,0,0.12);
+  --gpf-shadow-hov:   0 4px 14px rgba(0,0,0,0.18);
+  --gpf-spin-track:   rgba(0,0,0,0.08);
+  --gpf-chip-bg:      rgba(0,0,0,0.07);
+  --gpf-chip-fg:      #5f6368;
+  --gpf-row-hov:      rgba(0,0,0,0.04);
+  --gpf-divider:      rgba(0,0,0,0.08);
+  --gpf-load-bg:      rgba(250,250,250,0.96);
+  --gpf-load-fg:      #5f6368;
+}}
+
+/* GP body-level light theme overrides */
+body[data-color-scheme="light"] #gpf-root,
+body.light-mode #gpf-root {
+  --gpf-text:#202124; --gpf-text-muted:#5f6368; --gpf-text-sub:#80868b;
+  --gpf-surface:#f1f3f4; --gpf-surface-hov:#e8eaed;
+  --gpf-border:rgba(0,0,0,0.08); --gpf-cover-bg:#e0e0e0;
+  --gpf-accent:#1a73e8; --gpf-folder-clr:#f9ab00;
+  --gpf-shadow:0 1px 3px rgba(0,0,0,0.12); --gpf-shadow-hov:0 4px 14px rgba(0,0,0,0.18);
+  --gpf-spin-track:rgba(0,0,0,0.08); --gpf-chip-bg:rgba(0,0,0,0.07); --gpf-chip-fg:#5f6368;
+  --gpf-row-hov:rgba(0,0,0,0.04); --gpf-divider:rgba(0,0,0,0.08);
+  --gpf-load-bg:rgba(250,250,250,0.96); --gpf-load-fg:#5f6368;
+}
+
+/* ─── Wrapper ────────────────────────────────────────────────────── */
+#gpf-root.gpf-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  color: var(--gpf-text);
+  /* Fix 3: never inherit a tall min-height from GP's grid container */
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+/* ─── Floating loading overlay (visible during scroll collection) ─── */
+#gpf-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--gpf-load-bg);
+  color: var(--gpf-load-fg);
+  font-size: 13px;
+  font-family: 'Google Sans', Roboto, sans-serif;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--gpf-divider);
+  animation: gpf-in 0.2s ease both;
+}
+
+/* ─── Fix 2: Sticky loading bar ──────────────────────────────────── */
+/* Stays at top of viewport while the page is being programmatically
+   scrolled to trigger lazy loading of all albums */
+#gpf-loading {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--gpf-load-bg);
+  color: var(--gpf-load-fg);
+  font-size: 13px;
+  font-family: 'Google Sans', Roboto, sans-serif;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--gpf-divider);
+  /* Smooth appear */
+  animation: gpf-in 0.2s ease both;
+}
+
+.gpf-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--gpf-spin-track);
+  border-top-color: var(--gpf-accent);
+  border-radius: 50%;
+  animation: gpf-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes gpf-spin { to { transform: rotate(360deg); } }
+
+/* ─── Breadcrumb ─────────────────────────────────────────────────── */
+.gpf-breadcrumb {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0; padding: 8px 0 18px;
+}
+.gpf-bc-item {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; color: var(--gpf-text-muted);
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px; cursor: pointer;
+  transition: background var(--gpf-t), color var(--gpf-t);
+}
+.gpf-bc-item:hover { background: var(--gpf-row-hov); color: var(--gpf-text); }
+.gpf-bc-item.gpf-bc-home { color: var(--gpf-accent); }
+.gpf-bc-item.gpf-bc-home svg { width: 15px; height: 15px; }
+.gpf-bc-item.gpf-bc-current { color: var(--gpf-text); cursor: default; }
+.gpf-bc-item.gpf-bc-current:hover { background: none; }
+.gpf-bc-sep { color: var(--gpf-text-muted); font-size: 18px; opacity: 0.35; user-select: none; padding: 0 2px; }
+
+/* ─── Fix 3: Grid — auto height, never takes over scroll space ───── */
+.gpf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--gpf-cw), 1fr));
+  gap: var(--gpf-gap);
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.gpf-root-list, .gpf-section-divider { grid-column: 1 / -1; }
+.gpf-section-divider { height: 1px; background: var(--gpf-divider); margin: 4px 0 10px; }
+
+/* ─── Card base ──────────────────────────────────────────────────── */
+.gpf-card {
+  border-radius: var(--gpf-r); overflow: hidden; cursor: pointer;
+  background: var(--gpf-surface); border: 1px solid var(--gpf-border);
+  box-shadow: var(--gpf-shadow); outline: none;
+  transition: transform var(--gpf-t), box-shadow var(--gpf-t), background var(--gpf-t);
+  animation: gpf-in 0.2s ease both;
+  /* Cards stretch to fill the tallest card in the row */
+  display: flex;
+  flex-direction: column;
+}
+.gpf-card:hover { transform: translateY(-2px); box-shadow: var(--gpf-shadow-hov); background: var(--gpf-surface-hov); }
+.gpf-card:focus-visible { outline: 2px solid var(--gpf-accent); outline-offset: 2px; }
+
+@keyframes gpf-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Folder mosaic ──────────────────────────────────────────────── */
+.gpf-mosaic {
+  width: 100%; overflow: hidden;
+  background: var(--gpf-cover-bg); position: relative;
+  /* Grow to fill remaining card height; aspect-ratio only applies when NOT stretching */
+  flex: 1 1 0;
+  min-height: 0;
+}
+/* When cards are the same height, keep square mosaic as fallback */
+.gpf-mosaic-0, .gpf-mosaic-1 { aspect-ratio: unset; }
+.gpf-mosaic-0 { display: flex; align-items: center; justify-content: center; }
+.gpf-mosaic-empty { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--gpf-text-muted); opacity: 0.25; }
+.gpf-mosaic-empty svg { width: 42px; height: 42px; }
+.gpf-mosaic-1 .gpf-mosaic-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gpf-mosaic-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.gpf-mosaic-2 .gpf-mosaic-img { width: 100%; aspect-ratio: 1/2; object-fit: cover; }
+.gpf-mosaic-3 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
+.gpf-mosaic-3 .gpf-mosaic-img:first-child { grid-row: 1/3; width: 100%; height: 100%; object-fit: cover; }
+.gpf-mosaic-3 .gpf-mosaic-img:not(:first-child) { width: 100%; height: 100%; object-fit: cover; }
+.gpf-mosaic-4 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
+.gpf-mosaic-4 .gpf-mosaic-img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── Folder card info ───────────────────────────────────────────── */
+.gpf-card-info { padding: 10px 13px 12px; flex-shrink: 0; }
+.gpf-card-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500; color: var(--gpf-text);
+  line-height: 1.4; word-break: break-word;
+}
+.gpf-card-count { font-size: 12px; color: var(--gpf-text-muted); margin-top: 3px; }
+.gpf-folder-icon { width: 15px; height: 15px; color: var(--gpf-folder-clr); flex-shrink: 0; }
+
+/* ─── Nested album card ──────────────────────────────────────────── */
+.gpf-album-cover {
+  width: 100%; overflow: hidden; background: var(--gpf-cover-bg);
+  position: relative;
+  flex: 1 1 auto;
+}
+.gpf-album-cover img { width: 100%; height: auto; object-fit: contain; display: block; transition: transform 0.28s ease; }
+.gpf-card:hover .gpf-album-cover img { transform: scale(1.04); }
+.gpf-album-no-cover { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 150px; color: var(--gpf-text-muted); opacity: 0.22; }
+.gpf-album-no-cover svg { width: 42px; height: 42px; }
+
+/* Date chip overlaid on the cover image */
+.gpf-date-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 1;
+}
+
+/* Nested album info */
+.gpf-nested-info {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+/* The meta-row: count on left, chip on right, same line */
+.gpf-nested-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.gpf-nested-count-label {
+  font-size: 11px;
+  color: var(--gpf-text-muted);
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gpf-nested-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gpf-text);
+  line-height: 1.35;
+  word-break: break-word;
+}
+.gpf-nested-count {
+  font-size: 11.5px;
+  color: var(--gpf-text-muted);
+  line-height: 1.3;
+}
+
+/* ─── Date chip — gray ───────────────────────────────────────────── */
+.gpf-date-chip {
+  display: inline-flex; align-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.02em;
+  padding: 3px 9px; border-radius: 6px; white-space: nowrap;
+  font-family: 'Google Sans', Roboto, sans-serif;
+  flex-shrink: 0; width: fit-content;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.gpf-item-count {
+  font-size: 11px;
+  color: var(--gpf-text-sub);
+  white-space: nowrap;
+}
+
+/* ─── Root album rows (original GP list style) ───────────────────── */
+.gpf-root-list { display: flex; flex-direction: column; gap: 0; }
+
+.gpf-root-album {
+  display: flex; align-items: center; gap: 16px;
+  padding: 4px; border-radius: 4px;
+  text-decoration: none; color: var(--gpf-text); cursor: pointer;
+  transition: background var(--gpf-t);
+  animation: gpf-in 0.2s ease both;
+}
+.gpf-root-album:hover { background: var(--gpf-row-hov); }
+
+.gpf-root-thumb {
+  width: 80px; height: 80px; border-radius: 4px;
+  overflow: hidden; flex-shrink: 0; background: var(--gpf-cover-bg);
+}
+.gpf-root-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gpf-root-thumb-empty { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--gpf-text-muted); opacity: 0.22; }
+.gpf-root-thumb-empty svg { width: 28px; height: 28px; }
+
+.gpf-root-meta { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.gpf-root-name { font-size: 14px; font-weight: 500; color: var(--gpf-text); word-break: break-word; line-height: 1.35; }
+
+/* ─── Collection toast ──────────────────────────────────────────── */
+#gpf-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 999999;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 12px 18px;
+  background: #2d2d2d;
+  color: #e8eaed;
+  font-size: 13px;
+  font-family: 'Google Sans', Roboto, sans-serif;
+  border-radius: 12px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+#gpf-toast.gpf-toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+#gpf-toast.gpf-toast-hiding {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+  pointer-events: none;
+}
+
+.gpf-toast-spinner {
+  width: 16px; height: 16px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: #8ab4f8;
+  border-radius: 50%;
+  animation: gpf-spin 0.75s linear infinite;
+}
+.gpf-toast-text {
+  white-space: nowrap;
+}
+.gpf-toast-text strong {
+  color: #8ab4f8;
+  font-weight: 600;
+}
+.gpf-toast-cancel {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e8eaed;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+.gpf-toast-cancel:hover {
+  background: rgba(255,255,255,0.16);
+}
+
+/* Light mode toast */
+@media (prefers-color-scheme: light) {
+  #gpf-toast {
+    background: #fff;
+    color: #202124;
+    box-shadow: 0 6px 28px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+  }
+  .gpf-toast-spinner { border-color: rgba(0,0,0,0.1); border-top-color: #1a73e8; }
+  .gpf-toast-text strong { color: #1a73e8; }
+  .gpf-toast-cancel {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.1);
+    color: #202124;
+  }
+  .gpf-toast-cancel:hover { background: rgba(0,0,0,0.1); }
+}
+
+/* ─── Empty ──────────────────────────────────────────────────────── */
+.gpf-empty { color: var(--gpf-text-muted); font-size: 14px; padding: 32px 0; text-align: center; grid-column: 1/-1; }
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  :root { --gpf-cw: 150px; --gpf-gap: 10px; }
+  .gpf-root-thumb { width: 60px; height: 60px; }
+}
