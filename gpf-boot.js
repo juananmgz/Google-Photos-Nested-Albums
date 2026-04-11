@@ -67,7 +67,10 @@
         let el = mainLink.parentElement;
         while (el && el !== document.documentElement) {
           const cs = getComputedStyle(el);
-          if (cs.overflowY === "auto" || cs.overflowY === "scroll") { sc = el; break; }
+          if (cs.overflowY === "auto" || cs.overflowY === "scroll") {
+            sc = el;
+            break;
+          }
           el = el.parentElement;
         }
         if (sc) break;
@@ -91,11 +94,7 @@
         }
       }
 
-      const atBottom = contentLoaded
-        ? sc
-          ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 150
-          : window.innerHeight + window.scrollY >= document.body.scrollHeight - 150
-        : false;
+      const atBottom = contentLoaded ? (sc ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 150 : window.innerHeight + window.scrollY >= document.body.scrollHeight - 150) : false;
 
       if ((round >= MIN_ROUNDS && stableRounds >= STABLE_NEEDED && atBottom) || round >= MAX_ROUNDS) {
         S.isCollecting = false;
@@ -207,7 +206,10 @@
     if (mains.length > 0) {
       let gridInMain = false;
       for (const m of mains) {
-        if (m.contains(grid)) { gridInMain = true; break; }
+        if (m.contains(grid)) {
+          gridInMain = true;
+          break;
+        }
       }
       if (!gridInMain) return;
     }
@@ -324,6 +326,7 @@
 
   new MutationObserver(() => {
     if (!S.isInjected && !S.isCollecting && G.isAlbumsListPage()) findAndInject();
+    else if (S.isInjected && !document.getElementById("gpf-title-toggle")) G.injectTitleToggle();
   }).observe(document.body, { childList: true, subtree: true });
 
   function bootInit() {
