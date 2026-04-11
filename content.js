@@ -32,6 +32,7 @@
   let albumData = [];
   let gpfContainer = null;
   let originalGrid = null;
+  let originalGridParent = null; // parent of the grid, to re-insert restored cards
   let isInjected = false;
   let isCollecting = false;
   let folderViewActive = true;
@@ -315,6 +316,110 @@
     setTimeout(() => toast.remove(), 250);
   }
 
+  // ─── Fade out / fade in album cards ─────────────────────────────────────────
+
+  function buildRestoredGrid() {
+    // Build a simple album grid from albumData for the "toggle off" state
+    const container = document.createElement('div');
+    container.id = 'gpf-restored-grid';
+    container.className = 'gpf-restored-grid';
+    albumData.forEach(album => {
+      const card = document.createElement('a');
+      card.href = album.href || '#';
+      card.className = 'gpf-restored-card gpf-card-appearing';
+      card.innerHTML = safeHTML(`
+        <div class="gpf-restored-cover">${
+          album.cover
+            ? `<img src="${album.cover}" loading="lazy" />`
+            : `<div class="gpf-restored-empty"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`
+        }</div>
+        <div class="gpf-restored-info">
+          ${album.itemCount ? `<span class="gpf-restored-count">${album.itemCount}</span>` : ''}
+          <span class="gpf-restored-name">${album.title}</span>
+        </div>
+      `);
+      container.appendChild(card);
+    });
+    return container;
+  }
+
+  function showRestoredGrid() {
+    removeRestoredGrid();
+    if (!albumData.length) return;
+    const grid = buildRestoredGrid();
+    // Insert after gpfContainer (which is hidden) or into the original grid's parent
+    const anchor = gpfContainer || originalGridParent;
+    if (!anchor) return;
+    const parent = gpfContainer ? gpfContainer.parentElement : originalGridParent;
+    if (!parent) return;
+    if (gpfContainer) gpfContainer.after(grid);
+    else parent.appendChild(grid);
+    // Stagger the appear animation
+    const cards = grid.querySelectorAll('.gpf-restored-card');
+    cards.forEach((c, i) => { c.style.animationDelay = `${i * 0.02}s`; });
+    // Trigger reflow then remove the appearing class isn't needed —
+    // the CSS animation handles it automatically
+  }
+
+  function removeRestoredGrid() {
+    document.getElementById('gpf-restored-grid')?.remove();
+  }
+
+  function fadeOutRestoredGrid(onDone) {
+    const grid = document.getElementById('gpf-restored-grid');
+    if (!grid) { if (onDone) onDone(); return; }
+    const cards = Array.from(grid.querySelectorAll('.gpf-restored-card'));
+    cards.forEach((c, i) => {
+      c.style.animationDelay = `${i * 0.015}s`;
+      c.classList.remove('gpf-card-appearing');
+      c.classList.add('gpf-card-collecting');
+    });
+    // Remove grid after last card fades
+    const totalTime = cards.length * 15 + 300;
+    setTimeout(() => {
+      grid.remove();
+      if (onDone) onDone();
+    }, totalTime);
+  }
+
+  function fadeOutScrapedCards() {
+    // Find album links in the original GP grid (not our GPF view)
+    const selector = ALBUM_LINK_SELECTOR.split(',')
+      .map(s => s.trim() + ':not(#gpf-root a)')
+      .join(',');
+    const links = document.querySelectorAll(selector);
+    let delay = 0;
+
+    links.forEach(link => {
+      const id = getAlbumId(link.href || link.getAttribute('href'));
+      if (!id || !seenIds.has(id)) return;
+      if (link.dataset.gpfCollected) return;
+      link.dataset.gpfCollected = '1';
+
+      // Walk up to find the grid-level card (direct child of the album grid)
+      let card = link;
+      while (card.parentElement) {
+        const parent = card.parentElement;
+        const siblings = Array.from(parent.children).filter(c =>
+          c.querySelector(ALBUM_LINK_SELECTOR) || c.matches(ALBUM_LINK_SELECTOR));
+        if (siblings.length >= 2) break;
+        card = parent;
+      }
+
+      // Skip if this card is already being collected
+      if (card.dataset.gpfFading) return;
+      card.dataset.gpfFading = '1';
+
+      // Only fade out visually — do NOT remove from DOM.
+      // Google Photos uses a virtual scroll that recycles DOM nodes;
+      // removing them breaks its ability to render more items.
+      setTimeout(() => {
+        card.classList.add('gpf-card-collecting');
+      }, delay);
+      delay += 30;
+    });
+  }
+
   // ─── Collection loop ─────────────────────────────────────────────────────────
 
   function collectAllAlbums(onDone) {
@@ -327,15 +432,14 @@
       stableRounds = 0,
       round = 0;
     const STABLE_NEEDED = 8,
-      INTERVAL = 400,
+      INTERVAL = 450,
       MAX_ROUNDS = 500,
-      MIN_ROUNDS = 30;
+      MIN_ROUNDS = 20;
 
     const sc = findScrollContainer();
 
     // Show toast with cancel support
     const toast = showCollectionToast(() => {
-      // Cancel: stop collecting, clean up, leave page as-is
       isCollecting = false;
       stopContinuousScrape();
       removeCollectionToast();
@@ -357,7 +461,13 @@
 
       updateToastCount(count);
 
-      const atBottom = sc ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 150 : window.innerHeight + window.scrollY >= document.body.scrollHeight - 150;
+      // Don't fade out cards during collection — Google Photos uses a virtual
+      // scroll that recycles DOM nodes. Hiding/removing them breaks recycling
+      // and prevents new albums from loading. Toast counter shows progress.
+
+      const atBottom = sc
+        ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 150
+        : window.innerHeight + window.scrollY >= document.body.scrollHeight - 150;
 
       if ((round >= MIN_ROUNDS && stableRounds >= STABLE_NEEDED && atBottom) || round >= MAX_ROUNDS) {
         isCollecting = false;
@@ -366,7 +476,6 @@
         saveCache();
         console.log(`[GPF] Done: ${albumData.length} albums in ${round} rounds`);
 
-        // Scroll back to top before showing the folder view
         if (sc) sc.scrollTop = 0;
         window.scrollTo(0, 0);
 
@@ -374,8 +483,10 @@
         return;
       }
 
-      // Small scroll steps to avoid skipping albums in virtual/recycled DOM
-      const step = sc ? Math.max(sc.clientHeight * 0.3, 200) : window.innerHeight * 0.3;
+      // Scroll down to trigger Google Photos' virtual scroll to load more
+      const step = sc
+        ? Math.max(sc.clientHeight * 0.6, 300)
+        : window.innerHeight * 0.6;
       if (sc) sc.scrollTop += step;
       else window.scrollBy(0, step);
       setTimeout(tick, INTERVAL);
@@ -493,25 +604,23 @@
     updateToggleButton();
 
     if (folderViewActive) {
-      // Re-enable: hide original grid, show our container
-      if (originalGrid) originalGrid.style.cssText = "display:none!important";
-      if (gpfContainer) gpfContainer.style.display = "";
+      // Re-enable folder view: fade out restored grid, then show GPF
+      fadeOutRestoredGrid(() => {
+        if (gpfContainer) gpfContainer.style.display = "";
 
-      if (albumData.length === 0) {
-        // No data — must re-collect; briefly show original grid for scraping
-        if (originalGrid) originalGrid.style.cssText = "";
-        collectAllAlbums(() => {
-          if (originalGrid) originalGrid.style.cssText = "display:none!important";
-          if (gpfContainer) gpfContainer.style.display = "";
+        if (albumData.length === 0) {
+          collectAllAlbums(() => {
+            if (gpfContainer) gpfContainer.style.display = "";
+            renderView();
+          });
+        } else {
           renderView();
-        });
-      } else {
-        renderView();
-      }
+        }
+      });
     } else {
-      // Disable: show original grid, hide entire GPF container
-      if (originalGrid) originalGrid.style.cssText = "";
+      // Disable folder view: hide GPF, show restored album cards
       if (gpfContainer) gpfContainer.style.display = "none";
+      showRestoredGrid();
     }
   }
 
@@ -779,6 +888,7 @@
 
   function showFolderView(gridEl) {
     originalGrid = gridEl;
+    originalGridParent = gridEl.parentElement;
     gridEl.style.cssText = "display:none!important";
 
     gpfContainer = document.createElement("div");
@@ -838,11 +948,13 @@
 
     document.getElementById("gpf-root")?.remove();
     removeTitleToggle();
+    removeRestoredGrid();
     if (originalGrid) {
       originalGrid.style.cssText = "";
     }
     gpfContainer = null;
     originalGrid = null;
+    originalGridParent = null;
     isInjected = false;
     isCollecting = false;
     folderViewActive = true;
