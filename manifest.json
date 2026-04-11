@@ -8,7 +8,15 @@
   "content_scripts": [
     {
       "matches": ["https://photos.google.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "gpf-ns.js",
+        "gpf-utils.js",
+        "gpf-network.js",
+        "gpf-scrape.js",
+        "gpf-ui.js",
+        "gpf-render.js",
+        "gpf-boot.js"
+      ],
       "css": ["styles.css"],
       "run_at": "document_idle",
       "world": "MAIN"
