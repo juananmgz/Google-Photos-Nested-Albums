@@ -212,27 +212,46 @@
   window.addEventListener("popstate", handlePopState);
 
   // Google Photos SPA may navigate without pushState/replaceState (e.g.
-  // Navigation API or internal routing). Poll for URL changes as fallback.
-  // Also acts as watchdog: if the SPA replaces the content area and destroys
-  // our gpf-root while isInjected is still true, reset and re-inject.
+  // Navigation API or internal routing). A 300ms heartbeat handles:
+  // 1) URL change detection — triggers handleNavigation
+  // 2) Stale injection — isInjected true but not on albums page → cleanup
+  // 3) Destroyed DOM — SPA replaced content area, gpf-root gone → re-inject
+  // 4) Missed injection — on albums page but not injected → trigger injection
   let _lastUrl = location.href;
   setInterval(() => {
-    const cur = location.href;
-    if (cur !== _lastUrl) {
-      _lastUrl = cur;
-      if (!S._gpfNavigating) handleNavigation();
-    }
-    // Watchdog: detect if folder view was destroyed by SPA DOM replacement
-    if (S.isInjected && !document.getElementById("gpf-root")) {
-      S.isInjected = false;
-      S.gpfContainer = null;
-      S.originalGrid = null;
-      S.originalGridParent = null;
-      if (G.isAlbumsListPage()) {
-        startRetry();
-        findAndInject();
+    try {
+      const cur = location.href;
+      if (cur !== _lastUrl) {
+        _lastUrl = cur;
+        if (!S._gpfNavigating) handleNavigation();
       }
-    }
+      // Stale injection: navigated away but folder view still present
+      if (S.isInjected && !G.isAlbumsListPage()) {
+        document.getElementById("gpf-root")?.remove();
+        S.isInjected = false;
+        S.gpfContainer = null;
+        S.originalGrid = null;
+        S.originalGridParent = null;
+        S.isCollecting = false;
+        S.currentPath = [];
+        clearRetry();
+      }
+      // Destroyed DOM: SPA replaced content area, gpf-root gone
+      if (S.isInjected && !document.getElementById("gpf-root")) {
+        S.isInjected = false;
+        S.gpfContainer = null;
+        S.originalGrid = null;
+        S.originalGridParent = null;
+        if (G.isAlbumsListPage()) {
+          startRetry();
+          findAndInject();
+        }
+      }
+      // Missed injection: on albums page but not injected
+      if (!S.isInjected && !S.isCollecting && G.isAlbumsListPage() && !_retryTimer) {
+        startRetry();
+      }
+    } catch (_) {}
   }, 300);
 
   new MutationObserver(() => {
