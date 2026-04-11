@@ -606,6 +606,7 @@
     if (folderViewActive) {
       // Re-enable folder view: fade out restored grid, then show GPF
       fadeOutRestoredGrid(() => {
+        collapseGridAncestors();
         if (gpfContainer) gpfContainer.style.display = "";
 
         if (albumData.length === 0) {
@@ -620,6 +621,7 @@
     } else {
       // Disable folder view: hide GPF, show restored album cards
       if (gpfContainer) gpfContainer.style.display = "none";
+      restoreGridAncestors();
       showRestoredGrid();
     }
   }
@@ -886,10 +888,33 @@
 
   let _collapsedEls = [];
 
+  function collapseGridAncestors() {
+    _collapsedEls = [];
+    if (!originalGrid) return;
+    let el = originalGrid.parentElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+      if (el.id === "gpf-root") break;
+      // Google Photos sets explicit inline height on virtual-scroll containers
+      if (el.style.height && el.style.height !== "auto") {
+        _collapsedEls.push({ el, savedHeight: el.style.height });
+        el.style.height = "auto";
+      }
+      el = el.parentElement;
+    }
+  }
+
+  function restoreGridAncestors() {
+    for (const { el, savedHeight } of _collapsedEls) {
+      el.style.height = savedHeight;
+    }
+    _collapsedEls = [];
+  }
+
   function showFolderView(gridEl) {
     originalGrid = gridEl;
     originalGridParent = gridEl.parentElement;
     gridEl.style.cssText = "display:none!important";
+    collapseGridAncestors();
 
     gpfContainer = document.createElement("div");
     gpfContainer.className = "gpf-wrapper";
@@ -949,6 +974,7 @@
     document.getElementById("gpf-root")?.remove();
     removeTitleToggle();
     removeRestoredGrid();
+    restoreGridAncestors();
     if (originalGrid) {
       originalGrid.style.cssText = "";
     }
