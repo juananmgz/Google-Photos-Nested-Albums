@@ -216,19 +216,16 @@
   G.injectTitleToggle = function () {
     if (document.getElementById("gpf-title-toggle")) return;
     const h1 = document.querySelector("h1");
-    if (!h1 || !h1.textContent.trim().match(/^Álbumes$|^Albums$/)) return;
+    if (!h1) return;
     const toggle = document.createElement("button");
     toggle.id = "gpf-title-toggle";
-    toggle.className = "gpf-toggle-btn gpf-toggle-active";
-    toggle.setAttribute("aria-pressed", "true");
-    toggle.title = "Desactivar vista de carpetas";
+    toggle.className = "gpf-toggle-btn" + (S.folderViewActive ? " gpf-toggle-active" : "");
+    toggle.setAttribute("aria-pressed", String(S.folderViewActive));
+    toggle.title = S.folderViewActive ? "Desactivar vista de carpetas" : "Activar vista de carpetas";
     toggle.innerHTML = G.safeHTML(
       `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
     );
     toggle.onclick = G.toggleFolderView;
-    h1.parentElement.style.display = "flex";
-    h1.parentElement.style.alignItems = "center";
-    h1.parentElement.style.gap = "10px";
     h1.after(toggle);
   };
 
@@ -240,15 +237,17 @@
     S.folderViewActive = !S.folderViewActive;
     updateToggleButton();
 
+    const gpfGrid = S.gpfContainer?.querySelector(".gpf-grid");
+
     if (S.folderViewActive) {
       G.fadeOutRestoredGrid(() => {
         G.collapseGridAncestors();
-        if (S.gpfContainer) S.gpfContainer.style.display = "";
+        if (gpfGrid) gpfGrid.style.display = "";
 
         if (S.albumData.length === 0) {
           // Late-bound: collectAllAlbums is in gpf-boot.js
           G.collectAllAlbums(() => {
-            if (S.gpfContainer) S.gpfContainer.style.display = "";
+            if (gpfGrid) gpfGrid.style.display = "";
             G.renderView();
           });
         } else {
@@ -256,7 +255,7 @@
         }
       });
     } else {
-      if (S.gpfContainer) S.gpfContainer.style.display = "none";
+      if (gpfGrid) gpfGrid.style.display = "none";
       G.restoreGridAncestors();
       G.showRestoredGrid();
     }
@@ -287,6 +286,8 @@
       };
       bc.appendChild(btn);
     });
+    // Re-inject toggle next to h1 if SPA destroyed it
+    G.injectTitleToggle();
   }
 
   G.navigateTo = function (path, { replace = false } = {}) {

@@ -158,7 +158,7 @@ body.light-mode #gpf-root {
   border-radius: 8px; cursor: pointer; color: var(--gpf-text-muted);
   transition: background var(--gpf-t), color var(--gpf-t), border-color var(--gpf-t);
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-left: 8px;
 }
 .gpf-toggle-btn svg { width: 16px; height: 16px; pointer-events: none; }
 .gpf-toggle-btn:hover { background: var(--gpf-row-hov); color: var(--gpf-text); }

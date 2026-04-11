@@ -315,6 +315,10 @@
       if (!S.isInjected && !S.isCollecting && G.isAlbumsListPage() && !_retryTimer) {
         startRetry();
       }
+      // SPA replaced h1 area — re-inject toggle button
+      if (S.isInjected && !document.getElementById("gpf-title-toggle")) {
+        G.injectTitleToggle();
+      }
     } catch (_) {}
   }, 300);
 
