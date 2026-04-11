@@ -1,5 +1,3 @@
-# Google Photos Folders – Chrome Extension
-
 Organize your Google Photos albums into **nested folders** automatically.
 
 ## How does it work?
@@ -11,6 +9,12 @@ The extension reads your album names and organizes them into a folder hierarchy 
 - `FAMILY / General` → folder **_FAMILY_** with album **_General_**
 - `WORK / IT / My_Company` → **_WORK_** > **_IT_** > **_My_Company_**
 - `FRIENDS / [2024-09] Cousins Wedding` → **_FRIENDS_** folder, album **_Cousins Wedding_** (with date chip)
+
+Compare how the grid is updated: 
+<div style="display: flex; justify-content: center;">
+  <img src="https://github.com/user-attachments/assets/a2e58af0-c623-42ff-9e9a-3426f0837225" width="49%" />
+  <img src="https://github.com/user-attachments/assets/9d34ac7c-8ffe-460c-b4ef-7bf262a5296d" width="49%" />
+</div>
 
 ## Features
 
