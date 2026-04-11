@@ -20,7 +20,16 @@
       MAX_ROUNDS = 500,
       MIN_ROUNDS = 20;
 
-    const sc = G.findScrollContainer();
+    // Track whether album content has actually rendered in the DOM.
+    // During SPA navigation, the scroll container may exist but contain
+    // only a loading spinner — scrollHeight === clientHeight, making
+    // atBottom instantly true and causing premature stop (~90 albums
+    // from network interception only). We gate the atBottom check on
+    // real DOM content being present.
+    let contentLoaded = false;
+    const domLinkSel = G.ALBUM_LINK_SELECTOR.split(",")
+      .map((s) => s.trim() + ":not(#gpf-root a)")
+      .join(",");
 
     G.showCollectionToast(() => {
       S.isCollecting = false;
@@ -44,9 +53,49 @@
 
       G.updateToastCount(count);
 
-      const atBottom = sc
-        ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 150
-        : window.innerHeight + window.scrollY >= document.body.scrollHeight - 150;
+      // Re-find scroll container each tick — SPA may create it after
+      // collection starts (first visit via sidebar navigation).
+      // Google Photos SPA can leave multiple [role="main"] elements in
+      // the DOM during transitions (old photos view + new albums view).
+      // Walk all of them to find one that actually contains album links,
+      // then derive the scroll container from that link.
+      let sc = null;
+      const mains = document.querySelectorAll('[role="main"], main');
+      for (const m of mains) {
+        const mainLink = m.querySelector(domLinkSel);
+        if (!mainLink) continue;
+        let el = mainLink.parentElement;
+        while (el && el !== document.documentElement) {
+          const cs = getComputedStyle(el);
+          if (cs.overflowY === "auto" || cs.overflowY === "scroll") { sc = el; break; }
+          el = el.parentElement;
+        }
+        if (sc) break;
+      }
+      if (!sc) sc = G.findScrollContainer();
+
+      // Only check atBottom once album cards are in the main content DOM
+      // (not the sidebar, which has a few album links in its own list).
+      // Check ALL [role="main"] elements — SPA may keep stale ones.
+      if (!contentLoaded) {
+        for (const m of mains) {
+          if (m.querySelectorAll(domLinkSel).length > 0) {
+            contentLoaded = true;
+            // Reset stability counter — stableRounds accumulated during the
+            // loading phase (network found albums but DOM wasn't scrollable).
+            // Without this reset the stop condition fires immediately when
+            // we first reach the bottom of the now-scrollable container.
+            stableRounds = 0;
+            break;
+          }
+        }
+      }
+
+      const atBottom = contentLoaded
+        ? sc
+          ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 150
+          : window.innerHeight + window.scrollY >= document.body.scrollHeight - 150
+        : false;
 
       if ((round >= MIN_ROUNDS && stableRounds >= STABLE_NEEDED && atBottom) || round >= MAX_ROUNDS) {
         S.isCollecting = false;
@@ -147,6 +196,21 @@
     if (S.isInjected || S.isCollecting) return;
     const grid = G.findAlbumGrid();
     if (!grid || !grid.querySelectorAll(G.ALBUM_LINK_SELECTOR).length) return;
+
+    // During SPA navigation the sidebar may have a few album links before
+    // the main content area renders.  findAlbumGrid() picks the parent with
+    // the most album-link children, which can be the sidebar list.  Only
+    // proceed when the grid lives inside a main content area.
+    // Google Photos SPA can leave multiple [role="main"] in the DOM during
+    // transitions — check all of them.
+    const mains = document.querySelectorAll('[role="main"], main');
+    if (mains.length > 0) {
+      let gridInMain = false;
+      for (const m of mains) {
+        if (m.contains(grid)) { gridInMain = true; break; }
+      }
+      if (!gridInMain) return;
+    }
 
     clearRetry();
 
