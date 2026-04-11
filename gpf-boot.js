@@ -111,6 +111,35 @@
     S.isInjected = true;
   }
 
+  // ─── Retry logic ─────────────────────────────────────────────────────────────
+  // Google Photos is a SPA — the album grid may not exist yet after navigation
+  // or initial load. Poll until the grid appears instead of relying on a single
+  // attempt + MutationObserver (which misses recycled/mutated nodes).
+
+  let _retryTimer = null;
+  const RETRY_INTERVAL = 500;
+  const MAX_RETRIES = 30; // 15 s total
+
+  function startRetry() {
+    clearRetry();
+    let retries = 0;
+    _retryTimer = setInterval(() => {
+      retries++;
+      if (retries >= MAX_RETRIES || S.isInjected || S.isCollecting || !G.isAlbumsListPage()) {
+        clearRetry();
+        return;
+      }
+      findAndInject();
+    }, RETRY_INTERVAL);
+  }
+
+  function clearRetry() {
+    if (_retryTimer) {
+      clearInterval(_retryTimer);
+      _retryTimer = null;
+    }
+  }
+
   // ─── Boot ───────────────────────────────────────────────────────────────────
 
   function findAndInject() {
@@ -118,6 +147,8 @@
     if (S.isInjected || S.isCollecting) return;
     const grid = G.findAlbumGrid();
     if (!grid || !grid.querySelectorAll(G.ALBUM_LINK_SELECTOR).length) return;
+
+    clearRetry();
 
     if (G.loadCache()) {
       showFolderView(grid);
@@ -132,6 +163,7 @@
 
   function handleNavigation() {
     if (S._gpfNavigating) return;
+    clearRetry();
 
     document.getElementById("gpf-root")?.remove();
     G.removeTitleToggle();
@@ -151,7 +183,10 @@
       sessionStorage.removeItem(G.PATH_KEY);
     } catch (_) {}
 
-    if (G.isAlbumsListPage()) setTimeout(findAndInject, 900);
+    if (G.isAlbumsListPage()) {
+      setTimeout(findAndInject, 600);
+      startRetry();
+    }
   }
 
   function handlePopState(e) {
@@ -176,10 +211,39 @@
   });
   window.addEventListener("popstate", handlePopState);
 
+  // Google Photos SPA may navigate without pushState/replaceState (e.g.
+  // Navigation API or internal routing). Poll for URL changes as fallback.
+  // Also acts as watchdog: if the SPA replaces the content area and destroys
+  // our gpf-root while isInjected is still true, reset and re-inject.
+  let _lastUrl = location.href;
+  setInterval(() => {
+    const cur = location.href;
+    if (cur !== _lastUrl) {
+      _lastUrl = cur;
+      if (!S._gpfNavigating) handleNavigation();
+    }
+    // Watchdog: detect if folder view was destroyed by SPA DOM replacement
+    if (S.isInjected && !document.getElementById("gpf-root")) {
+      S.isInjected = false;
+      S.gpfContainer = null;
+      S.originalGrid = null;
+      S.originalGridParent = null;
+      if (G.isAlbumsListPage()) {
+        startRetry();
+        findAndInject();
+      }
+    }
+  }, 300);
+
   new MutationObserver(() => {
     if (!S.isInjected && !S.isCollecting && G.isAlbumsListPage()) findAndInject();
   }).observe(document.body, { childList: true, subtree: true });
 
-  if (document.readyState === "complete") setTimeout(findAndInject, 1200);
-  else window.addEventListener("load", () => setTimeout(findAndInject, 1200));
+  function bootInit() {
+    setTimeout(findAndInject, 800);
+    if (G.isAlbumsListPage()) startRetry();
+  }
+
+  if (document.readyState === "complete") bootInit();
+  else window.addEventListener("load", bootInit);
 })();
