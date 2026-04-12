@@ -215,7 +215,12 @@
 
   G.injectTitleToggle = function () {
     if (document.getElementById("gpf-title-toggle")) return;
-    const h1 = document.querySelector("h1");
+    // Skip hidden h1 elements — SPA keeps stale h1 from previous view
+    // (e.g. timeline month heading from home page) in the DOM.
+    let h1 = null;
+    for (const el of document.querySelectorAll("h1")) {
+      if (el.offsetParent !== null) { h1 = el; break; }
+    }
     if (!h1) return;
     const toggle = document.createElement("button");
     toggle.id = "gpf-title-toggle";

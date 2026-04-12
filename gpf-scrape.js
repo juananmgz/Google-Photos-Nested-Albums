@@ -87,8 +87,9 @@
     return null;
   };
 
-  G.findAlbumGrid = function () {
-    const links = document.querySelectorAll(
+  G.findAlbumGrid = function (scope) {
+    const root = scope || document;
+    const links = root.querySelectorAll(
       SEL.split(",")
         .map((s) => s.trim() + ":not(#gpf-root a)")
         .join(","),
@@ -100,6 +101,7 @@
       let el = link.parentElement;
       while (el && el !== document.body) {
         if (el.id === "gpf-root") break;
+        if (scope && !scope.contains(el)) break;
         const kids = Array.from(el.children).filter((c) => c.querySelector(SEL) || c.matches(SEL));
         if (kids.length >= 2 && kids.length > bestCount) {
           bestCount = kids.length;

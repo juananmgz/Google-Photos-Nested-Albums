@@ -193,25 +193,33 @@
   function findAndInject() {
     if (!G.isAlbumsListPage()) return;
     if (S.isInjected || S.isCollecting) return;
-    const grid = G.findAlbumGrid();
-    if (!grid || !grid.querySelectorAll(G.ALBUM_LINK_SELECTOR).length) return;
 
-    // During SPA navigation the sidebar may have a few album links before
-    // the main content area renders.  findAlbumGrid() picks the parent with
-    // the most album-link children, which can be the sidebar list.  Only
-    // proceed when the grid lives inside a main content area.
-    // Google Photos SPA can leave multiple [role="main"] in the DOM during
-    // transitions — check all of them.
+    // During SPA navigation from home, the sidebar already has album links
+    // that may outnumber main content's initial render. Search inside
+    // [role="main"] first to avoid picking the sidebar grid.
+    let grid = null;
     const mains = document.querySelectorAll('[role="main"], main');
-    if (mains.length > 0) {
-      let gridInMain = false;
-      for (const m of mains) {
-        if (m.contains(grid)) {
-          gridInMain = true;
-          break;
-        }
+    for (const m of mains) {
+      const candidate = G.findAlbumGrid(m);
+      if (candidate && candidate.querySelectorAll(G.ALBUM_LINK_SELECTOR).length) {
+        grid = candidate;
+        break;
       }
-      if (!gridInMain) return;
+    }
+    // Fallback: no [role="main"] found or no grid inside it
+    if (!grid) {
+      grid = G.findAlbumGrid();
+      if (!grid || !grid.querySelectorAll(G.ALBUM_LINK_SELECTOR).length) return;
+      if (mains.length > 0) {
+        let gridInMain = false;
+        for (const m of mains) {
+          if (m.contains(grid)) {
+            gridInMain = true;
+            break;
+          }
+        }
+        if (!gridInMain) return;
+      }
     }
 
     clearRetry();
@@ -317,16 +325,28 @@
       if (!S.isInjected && !S.isCollecting && G.isAlbumsListPage() && !_retryTimer) {
         startRetry();
       }
-      // SPA replaced h1 area — re-inject toggle button
-      if (S.isInjected && !document.getElementById("gpf-title-toggle")) {
-        G.injectTitleToggle();
+      // SPA replaced h1 area — re-inject toggle button.
+      // Also check visibility: SPA may move toggle into hidden container
+      // where getElementById still finds it but user can't see it.
+      if (S.isInjected) {
+        const toggle = document.getElementById("gpf-title-toggle");
+        if (!toggle || toggle.offsetParent === null) {
+          if (toggle) toggle.remove();
+          G.injectTitleToggle();
+        }
       }
     } catch (_) {}
   }, 300);
 
   new MutationObserver(() => {
     if (!S.isInjected && !S.isCollecting && G.isAlbumsListPage()) findAndInject();
-    else if (S.isInjected && !document.getElementById("gpf-title-toggle")) G.injectTitleToggle();
+    else if (S.isInjected) {
+      const toggle = document.getElementById("gpf-title-toggle");
+      if (!toggle || toggle.offsetParent === null) {
+        if (toggle) toggle.remove();
+        G.injectTitleToggle();
+      }
+    }
   }).observe(document.body, { childList: true, subtree: true });
 
   function bootInit() {
