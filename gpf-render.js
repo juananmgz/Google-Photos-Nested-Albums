@@ -55,11 +55,14 @@
       );
     } else {
       covers.slice(0, 4).forEach((src) => {
+        const cell = document.createElement("div");
+        cell.className = "gpf-mosaic-cell";
         const img = document.createElement("img");
         img.src = src;
         img.className = "gpf-mosaic-img";
         img.loading = "lazy";
-        m.appendChild(img);
+        cell.appendChild(img);
+        m.appendChild(cell);
       });
     }
     return m;
