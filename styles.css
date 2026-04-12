@@ -208,10 +208,13 @@ body.light-mode #gpf-root {
 /* ─── Folder mosaic ──────────────────────────────────────────────── */
 .gpf-mosaic {
   width: 100%; overflow: hidden;
-  background: var(--gpf-cover-bg); position: relative;
+  transition: background var(--gpf-t);
+  background: color-mix(in srgb, var(--gpf-folder-clr) 25%, var(--gpf-surface));
+  position: relative;
   flex: 1 1 auto;
   aspect-ratio: 1;
 }
+.gpf-mosaic:hover { background: color-mix(in srgb, var(--gpf-folder-clr) 10%, var(--gpf-surface-hov)); }
 .gpf-mosaic-0, .gpf-mosaic-1 { aspect-ratio: 1; }
 .gpf-mosaic-0 { display: flex; align-items: center; justify-content: center; }
 .gpf-mosaic-empty { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--gpf-text-muted); opacity: 0.25; }
