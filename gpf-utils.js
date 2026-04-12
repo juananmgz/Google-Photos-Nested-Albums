@@ -26,7 +26,7 @@
   };
 
   G.formatCount = function (n) {
-    const label = n === 1 ? "elemento" : n > 99 ? "elem." : "elementos";
+    const label = n === 1 ? "álbum" : "álbumes";
     return `${n} ${label}`;
   };
 
