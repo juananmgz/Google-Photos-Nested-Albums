@@ -1,3 +1,4 @@
 # Ignore Claude file
 claude.md
 .DS_Store
+.claude
