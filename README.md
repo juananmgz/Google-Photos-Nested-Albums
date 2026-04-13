@@ -26,10 +26,10 @@ Compare how the grid is updated:
 
 ## Naming convention
 
-Name your albums using the format:
+Name your albums using the format (subfolders are optional, date is optional):
 
 ```
-FOLDER / SUBFOLDER / [yyyy-mm] Album name
+FOLDER / SUBFOLDER / ... / [yyyy-mm] Album name
 ```
 
 The separator is `/` (slash with spaces on both sides, or just `/`).
