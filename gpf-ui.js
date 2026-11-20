@@ -44,17 +44,37 @@
       const card = document.createElement("a");
       card.href = album.href || "#";
       card.className = "gpf-restored-card gpf-card-appearing";
-      card.innerHTML = G.safeHTML(`
-        <div class="gpf-restored-cover">${
-          album.cover
-            ? `<img src="${album.cover}" loading="lazy" />`
-            : `<div class="gpf-restored-empty"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`
-        }</div>
-        <div class="gpf-restored-info">
-          ${album.itemCount ? `<span class="gpf-restored-count">${album.itemCount}</span>` : ""}
-          <span class="gpf-restored-name">${album.title}</span>
-        </div>
-      `);
+
+      // Build with DOM APIs: title, cover and itemCount are scraped from the
+      // page and may contain attacker-controlled text (e.g. shared album names).
+      const coverEl = document.createElement("div");
+      coverEl.className = "gpf-restored-cover";
+      if (album.cover) {
+        const img = document.createElement("img");
+        img.src = album.cover;
+        img.loading = "lazy";
+        coverEl.appendChild(img);
+      } else {
+        coverEl.innerHTML = G.safeHTML(
+          `<div class="gpf-restored-empty"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`,
+        );
+      }
+      card.appendChild(coverEl);
+
+      const info = document.createElement("div");
+      info.className = "gpf-restored-info";
+      if (album.itemCount) {
+        const count = document.createElement("span");
+        count.className = "gpf-restored-count";
+        count.textContent = album.itemCount;
+        info.appendChild(count);
+      }
+      const nameEl = document.createElement("span");
+      nameEl.className = "gpf-restored-name";
+      nameEl.textContent = album.title;
+      info.appendChild(nameEl);
+      card.appendChild(info);
+
       container.appendChild(card);
     });
     return container;
