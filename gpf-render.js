@@ -88,8 +88,13 @@
     const titleRow = document.createElement("div");
     titleRow.className = "gpf-card-title";
     titleRow.innerHTML = G.safeHTML(
-      `<svg class="gpf-folder-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span>${name}</span>`,
+      `<svg class="gpf-folder-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`,
     );
+    // Folder names come from album titles (which may be set by other users
+    // via shared albums), so never interpolate them into HTML.
+    const titleText = document.createElement("span");
+    titleText.textContent = name;
+    titleRow.appendChild(titleText);
     info.appendChild(titleRow);
     card.appendChild(info);
     card.onclick = () => {

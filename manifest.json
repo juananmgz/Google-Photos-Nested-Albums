@@ -3,7 +3,6 @@
   "name": "Google Photos Folders",
   "version": "1.0.0",
   "description": "Organiza tus álbumes de Google Photos en carpetas anidadas automáticamente.",
-  "permissions": ["activeTab", "scripting"],
   "host_permissions": ["https://photos.google.com/*"],
   "content_scripts": [
     {

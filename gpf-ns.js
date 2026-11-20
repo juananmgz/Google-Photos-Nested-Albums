@@ -2,6 +2,9 @@
 (function () {
   "use strict";
 
+  // Trusted Types policy for the extension's own static markup (icons, empty
+  // states). It does not sanitize, so it must only ever receive hard-coded
+  // HTML. Anything derived from album data must be set via textContent.
   let _ttPolicy;
   try {
     _ttPolicy = window.trustedTypes?.createPolicy("gpf-html", { createHTML: (s) => s });
